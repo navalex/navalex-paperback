@@ -1,4 +1,21 @@
-import { Chapter, ChapterDetails, ContentRating, HomeSection, SourceManga, PagedResults, SearchRequest, Request, Response, Source, SourceInfo, BadgeColor, RequestManagerInfo } from "@paperback/types";
+import {
+    Chapter,
+    ChapterDetails,
+    ContentRating,
+    HomeSection,
+    PagedResults,
+    SearchRequest,
+    SourceInfo,
+    SourceIntents,
+    SourceManga,
+    BadgeColor,
+    SearchResultsProviding,
+    MangaProviding,
+    ChapterProviding,
+    HomePageSectionsProviding,
+    TagSection,
+    PartialSourceManga,
+} from "@paperback/types";
 import { Parser } from "./parser";
 const SOURCE_DOMAIN = "https://scanmanga-vf.ws";
 export const ScanMangaVFInfo: SourceInfo = {
@@ -13,16 +30,22 @@ export const ScanMangaVFInfo: SourceInfo = {
     sourceTags: [
         {
             text: "French",
-            type: BadgeColor.GREY
+            type: BadgeColor.GREY,
         },
         {
             text: "Cloudflare",
-            type: BadgeColor.RED
+            type: BadgeColor.RED,
         },
-    ]
+    ],
 };
-const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.124 Safari/537.36 Edg/102.0.1245.44";
-export class FlameScans extends Source {
+const userAgent =
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.124 Safari/537.36 Edg/102.0.1245.44";
+export class ScanMangaVF
+    implements SearchResultsProviding, MangaProviding, ChapterProviding, HomePageSectionsProviding
+{
+    getViewMoreItems(homepageSectionId: string, metadata: any): Promise<PagedResults> {
+        throw new Error("Method not implemented.");
+    }
     baseUrl = SOURCE_DOMAIN;
     requestManager = App.createRequestManager({
         requestsPerSecond: 3,
@@ -33,15 +56,15 @@ export class FlameScans extends Source {
                     ...(request.headers ?? {}),
                     ...{
                         "user-agent": userAgent,
-                        referer: `${this.baseUrl}/`
-                    }
+                        referer: `${this.baseUrl}/`,
+                    },
                 };
                 return request;
             },
             interceptResponse: async (response: Response): Promise<Response> => {
                 return response;
-            }
-        }
+            },
+        },
     });
     RETRY = 5;
     parser = new Parser();
@@ -51,7 +74,7 @@ export class FlameScans extends Source {
     async getMangaDetails(mangaId: string): Promise<SourceManga> {
         const request = App.createRequest({
             url: `${this.baseUrl}/manga/${mangaId}`,
-            method: "GET"
+            method: "GET",
         });
         const response = await this.requestManager.schedule(request, this.RETRY);
         this.CloudFlareError(response.status);
@@ -61,7 +84,7 @@ export class FlameScans extends Source {
     async getChapters(mangaId: string): Promise<Chapter[]> {
         const request = App.createRequest({
             url: `${this.baseUrl}/manga/${mangaId}`,
-            method: "GET"
+            method: "GET",
         });
         const response = await this.requestManager.schedule(request, this.RETRY);
         this.CloudFlareError(response.status);
@@ -71,7 +94,7 @@ export class FlameScans extends Source {
     async getChapterDetails(mangaId: string, chapterId: string): Promise<ChapterDetails> {
         const request = App.createRequest({
             url: `${chapterId}`,
-            method: "GET"
+            method: "GET",
         });
         const response = await this.requestManager.schedule(request, this.RETRY);
         this.CloudFlareError(response.status);
@@ -80,31 +103,29 @@ export class FlameScans extends Source {
     }
     async getSearchResults(query: SearchRequest, metadata: any): Promise<PagedResults> {
         let page = metadata?.page ?? 1;
-        if (page == -1)
-            return App.createPagedResults({ results: [], metadata: { page: -1 } });
+        if (page == -1) return App.createPagedResults({ results: [], metadata: { page: -1 } });
         const search = query.title?.replace(/ /g, "+").replace(/[’'´]/g, "%27") ?? "";
         const param = `filterList?page=${page}&tag=&alpha=${search}&sortBy=name&asc=true`;
         const request = App.createRequest({
             url: `${this.baseUrl}`,
             method: "GET",
-            param
+            param,
         });
         const data = await this.requestManager.schedule(request, this.RETRY);
         this.CloudFlareError(data.status);
         const $ = this.cheerio.load(data.data);
         const manga = this.parser.parseSearchResults($);
         page++;
-        if (manga.length < 10)
-            page = -1;
+        if (manga.length < 10) page = -1;
         return App.createPagedResults({
             results: manga,
-            metadata: { page: page }
+            metadata: { page: page },
         });
     }
     override async getHomePageSections(sectionCallback: (section: HomeSection) => void): Promise<void> {
         const request = App.createRequest({
             url: `${this.baseUrl}`,
-            method: "GET"
+            method: "GET",
         });
         const response = await this.requestManager.schedule(request, this.RETRY);
         this.CloudFlareError(response.status);
@@ -117,19 +138,15 @@ export class FlameScans extends Source {
             method: "GET",
             headers: {
                 "user-agent": userAgent,
-                referer: `${this.baseUrl}/`
-            }
+                referer: `${this.baseUrl}/`,
+            },
         });
     }
     CloudFlareError(status: any) {
         if (status == 503) {
-            throw new Error("CLOUDFLARE BYPASS ERROR:\nPlease go to Settings > Sources > <The name of this source> and press Cloudflare Bypass");
+            throw new Error(
+                "CLOUDFLARE BYPASS ERROR:\nPlease go to Settings > Sources > <The name of this source> and press Cloudflare Bypass"
+            );
         }
     }
-}
-export interface FSResponse extends Response {
-    fixedData: string;
-}
-export interface FSRequestManager extends RequestManagerInfo {
-    schedule: (request: Request, retryCount: number) => Promise<FSResponse>;
 }
