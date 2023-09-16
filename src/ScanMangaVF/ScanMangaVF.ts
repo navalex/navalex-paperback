@@ -111,7 +111,7 @@ export class ScanMangaVF
             metadata: { page: page },
         });
     }
-    override async getHomePageSections(sectionCallback: (section: HomeSection) => void): Promise<void> {
+    async getHomePageSections(sectionCallback: (section: HomeSection) => void): Promise<void> {
         const request = App.createRequest({
             url: `${this.baseUrl}`,
             method: "GET",
@@ -121,7 +121,7 @@ export class ScanMangaVF
         const $ = this.cheerio.load(response.data);
         this.parser.parseHomeSections($, sectionCallback);
     }
-    override getCloudflareBypassRequest(): Request {
+    getCloudflareBypassRequest(): Request {
         return App.createRequest({
             url: this.baseUrl,
             method: "GET",
