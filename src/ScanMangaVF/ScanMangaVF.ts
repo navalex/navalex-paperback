@@ -5,19 +5,19 @@ import {
     HomeSection,
     PagedResults,
     SearchRequest,
+    Request,
     SourceInfo,
-    SourceIntents,
     SourceManga,
     BadgeColor,
     SearchResultsProviding,
     MangaProviding,
     ChapterProviding,
     HomePageSectionsProviding,
-    TagSection,
-    PartialSourceManga,
 } from "@paperback/types";
 import { Parser } from "./parser";
+
 const SOURCE_DOMAIN = "https://scanmanga-vf.ws";
+
 export const ScanMangaVFInfo: SourceInfo = {
     version: "1.0.0",
     name: "ScanManga-VF",
@@ -41,36 +41,25 @@ export const ScanMangaVFInfo: SourceInfo = {
 const userAgent =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.124 Safari/537.36 Edg/102.0.1245.44";
 export class ScanMangaVF
-    implements SearchResultsProviding, MangaProviding, ChapterProviding, HomePageSectionsProviding
+    implements MangaProviding, ChapterProviding, HomePageSectionsProviding, SearchResultsProviding
 {
-    getViewMoreItems(homepageSectionId: string, metadata: any): Promise<PagedResults> {
-        throw new Error("Method not implemented.");
-    }
+    constructor(private cheerio: CheerioAPI) {}
     baseUrl = SOURCE_DOMAIN;
     requestManager = App.createRequestManager({
         requestsPerSecond: 3,
         requestTimeout: 8000,
-        interceptor: {
-            interceptRequest: async (request: Request): Promise<Request> => {
-                request.headers = {
-                    ...(request.headers ?? {}),
-                    ...{
-                        "user-agent": userAgent,
-                        referer: `${this.baseUrl}/`,
-                    },
-                };
-                return request;
-            },
-            interceptResponse: async (response: Response): Promise<Response> => {
-                return response;
-            },
-        },
     });
     RETRY = 5;
     parser = new Parser();
-    override getMangaShareUrl(mangaId: string): string {
+
+    getMangaShareUrl(mangaId: string): string {
         return `${this.baseUrl}/manga/${mangaId}`;
     }
+
+    getViewMoreItems(homepageSectionId: string, metadata: any): Promise<PagedResults> {
+        throw new Error("Method not implemented.");
+    }
+
     async getMangaDetails(mangaId: string): Promise<SourceManga> {
         const request = App.createRequest({
             url: `${this.baseUrl}/manga/${mangaId}`,

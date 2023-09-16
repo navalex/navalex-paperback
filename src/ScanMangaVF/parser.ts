@@ -1,43 +1,56 @@
-import { Chapter, ChapterDetails, HomeSection, HomeSectionType, LanguageCode, SourceManga, MangaStatus, PartialSourceManga, Tag, TagSection } from "@paperback/types";
+import {
+    Chapter,
+    ChapterDetails,
+    HomeSection,
+    HomeSectionType,
+    SourceManga,
+    PartialSourceManga,
+    Tag,
+    TagSection,
+} from "@paperback/types";
+
 function getMangaThumbnail(mangaID: string | undefined) {
     return "https://scanmanga-vf.ws/uploads/manga/" + mangaID + ".jpg";
 }
 export class Parser {
     parseMangaDetails($: any, mangaId: string): SourceManga {
         let titles = [decodeHTMLEntity($(".widget-title").eq(0).text().trim())];
-        const image = ($(".img-responsive").attr("src") ?? "").split("/")[0] == "https:"
-            ? $(".img-responsive").attr("src") ?? ""
-            : "https:" + $(".img-responsive").attr("src") ?? "";
-        let status = MangaStatus.UNKNOWN, author = "", artist = "";
+        const image =
+            ($(".img-responsive").attr("src") ?? "").split("/")[0] == "https:"
+                ? $(".img-responsive").attr("src") ?? ""
+                : "https:" + $(".img-responsive").attr("src") ?? "";
+        let status = "Unknown",
+            author = "",
+            artist = "";
         // Details container
         const panel = $(".dl-horizontal");
         // Status
-        switch ($("dt:contains(\"Statut\")", panel).next().text().trim()) {
+        switch ($('dt:contains("Statut")', panel).next().text().trim()) {
             case "En cours":
-                status = MangaStatus.ONGOING;
+                status = "Ongoing";
                 break;
             case "Termin\u00E9":
-                status = MangaStatus.COMPLETED;
+                status = "Completed";
                 break;
         }
         // Other titles
-        let othersTitles = $("dt:contains(\"Appel\u00E9 aussi\")", panel).next().text().trim().split(",");
+        let othersTitles = $('dt:contains("Appel\u00E9 aussi")', panel).next().text().trim().split(",");
         for (let title of othersTitles) {
             titles.push(decodeHTMLEntity(title.trim()));
         }
         // Author & Artist
         const arrayTags: Tag[] = [];
         author =
-            $("dt:contains(\"Auteur(s)\")", panel).next().text().trim() != ""
-                ? $("dt:contains(\"Auteur(s)\")", panel).next().text().trim()
+            $('dt:contains("Auteur(s)")', panel).next().text().trim() != ""
+                ? $('dt:contains("Auteur(s)")', panel).next().text().trim()
                 : "";
         artist =
-            $("dt:contains(\"Artist(s)\")", panel).next().text().trim() != ""
-                ? $("dt:contains(\"Artist(s)\")", panel).next().text().trim()
+            $('dt:contains("Artist(s)")', panel).next().text().trim() != ""
+                ? $('dt:contains("Artist(s)")', panel).next().text().trim()
                 : "";
         // Set tags
-        if ($("dt:contains(\"Cat\u00E9gories\")", panel).length > 0) {
-            const categories = $("dt:contains(\"Cat\u00E9gories\")", panel).next().text().trim().split(",") ?? "";
+        if ($('dt:contains("Cat\u00E9gories")', panel).length > 0) {
+            const categories = $('dt:contains("Cat\u00E9gories")', panel).next().text().trim().split(",") ?? "";
             for (const category of categories) {
                 const label = capitalizeFirstLetter(decodeHTMLEntity(category.trim()));
                 const id = category.replace(" ", "-").toLowerCase().trim() ?? label;
@@ -45,15 +58,16 @@ export class Parser {
             }
         }
         // Tags
-        if ($("dt:contains(\"Genres\")", panel).length > 0) {
-            const tags = $("dt:contains(\"Genres\")", panel).next().text().trim().split(",") ?? "";
+        if ($('dt:contains("Genres")', panel).length > 0) {
+            const tags = $('dt:contains("Genres")', panel).next().text().trim().split(",") ?? "";
             for (const tag of tags) {
                 const label = tag.replace(/(\r\n|\n|\r)/gm, "").trim();
-                const id = tag
-                    .replace(/(\r\n|\n|\r)/gm, "")
-                    .trim()
-                    .replace(" ", "-")
-                    .toLowerCase() ?? label;
+                const id =
+                    tag
+                        .replace(/(\r\n|\n|\r)/gm, "")
+                        .trim()
+                        .replace(" ", "-")
+                        .toLowerCase() ?? label;
                 if (!arrayTags.includes({ id: id, label: label })) {
                     arrayTags.push({ id: id, label: label });
                 }
@@ -62,28 +76,28 @@ export class Parser {
         const tagSections: TagSection[] = [
             App.createTagSection({ id: "0", label: "genres", tags: arrayTags.map((x) => App.createTag(x)) }),
         ];
-        const views = $("dt:contains(\"Vues\")", panel).next().text().trim() || "";
-        const rating = $("dt:contains(\"Note\")", panel)
-            .next()
-            .children()
-            .text()
-            .trim()
-            .match(/([+-]?([0-9]*[.])?[0-9]+)\/5/g)[0]
-            ?.split("/")[0] || "";
+        const views = $('dt:contains("Vues")', panel).next().text().trim() || "";
+        const rating =
+            $('dt:contains("Note")', panel)
+                .next()
+                .children()
+                .text()
+                .trim()
+                .match(/([+-]?([0-9]*[.])?[0-9]+)\/5/g)[0]
+                ?.split("/")[0] || "";
         const desc = decodeHTMLEntity($(".well").children("p").text().trim());
         return App.createSourceManga({
             id: mangaId,
             mangaInfo: App.createMangaInfo({
                 titles,
                 image,
-                views: Number(views) ?? 0,
                 rating: Number(rating) ?? 0,
                 status,
                 artist,
                 author,
                 tags: tagSections,
-                desc: this.encodeText(desc)
-            })
+                desc: this.encodeText(desc),
+            }),
         });
     }
     parseChapters($: any, mangaId: string, _source: any): Chapter[] {
@@ -94,13 +108,15 @@ export class Parser {
             const name = "Chapitre " + decodeHTMLEntity($("a", chapter).text().split(" ").pop() ?? "");
             const chapNum = Number(id.split("/").pop());
             const time = new Date($(".date-chapter-title-rtl", chapter).text() ?? "");
-            chapters.push(App.createChapter({
-                id,
-                name,
-                langCode: LanguageCode.FRENCH,
-                chapNum,
-                time
-            }));
+            chapters.push(
+                App.createChapter({
+                    id,
+                    name,
+                    langCode: "French",
+                    chapNum,
+                    time,
+                })
+            );
         }
         return chapters;
     }
@@ -109,14 +125,13 @@ export class Parser {
         const chapterList = $("#all img").toArray();
         for (const obj of chapterList) {
             const imageUrl = $(obj).attr("data-src");
-            if (!imageUrl)
-                continue;
+            if (!imageUrl) continue;
             pages.push(imageUrl.trim());
         }
         return App.createChapterDetails({
             id,
             mangaId,
-            pages
+            pages,
         });
     }
     parseSearchResults($: any): PartialSourceManga[] {
@@ -126,14 +141,15 @@ export class Parser {
             let image = $("img", item).attr("src");
             let title = decodeHTMLEntity($("h5", item).text());
             let subtitle = "Chapitre " + decodeHTMLEntity($("a", item).eq(2).text().trim().replace(/#/g, ""));
-            if (typeof url === "undefined" || typeof image === "undefined")
-                continue;
-            results.push(App.createPartialSourceManga({
-                image: image,
-                title: title,
-                mangaId: url,
-                subtitle: subtitle
-            }));
+            if (typeof url === "undefined" || typeof image === "undefined") continue;
+            results.push(
+                App.createPartialSourceManga({
+                    image: image,
+                    title: title,
+                    mangaId: url,
+                    subtitle: subtitle,
+                })
+            );
         }
         return results;
     }
@@ -142,19 +158,19 @@ export class Parser {
             id: "latest_popular_manga",
             title: "Dernier Manga Populaire Sorti",
             containsMoreItems: false,
-            type: HomeSectionType.featured
+            type: HomeSectionType.featured,
         });
         const section2 = App.createHomeSection({
             id: "latest_updates",
             title: "Dernier Manga Sorti",
             containsMoreItems: false,
-            type: HomeSectionType.singleRowNormal
+            type: HomeSectionType.singleRowNormal,
         });
         const section3 = App.createHomeSection({
             id: "top_manga",
             title: "Top MANGA",
             containsMoreItems: false,
-            type: HomeSectionType.singleRowNormal
+            type: HomeSectionType.singleRowNormal,
         });
         const popularManga: PartialSourceManga[] = [];
         const latestManga: PartialSourceManga[] = [];
@@ -167,14 +183,15 @@ export class Parser {
             let image = getMangaThumbnail(url);
             let title = decodeHTMLEntity($(".manga-name a", item).first().text());
             let subtitle = decodeHTMLEntity($("p", item).text().trim());
-            if (typeof url === "undefined" || typeof image === "undefined")
-                continue;
-            popularManga.push(App.createPartialSourceManga({
-                image: image,
-                title: title,
-                mangaId: url,
-                subtitle: subtitle
-            }));
+            if (typeof url === "undefined" || typeof image === "undefined") continue;
+            popularManga.push(
+                App.createPartialSourceManga({
+                    image: image,
+                    title: title,
+                    mangaId: url,
+                    subtitle: subtitle,
+                })
+            );
         }
         section1.items = popularManga;
         sectionCallback(section1);
@@ -182,20 +199,24 @@ export class Parser {
             let url = $("a", item).first().attr("href")?.split("/").pop();
             let image = getMangaThumbnail(url);
             let title = decodeHTMLEntity($("a", item).first().text());
-            let subtitle = "Chapitre " +
-                decodeHTMLEntity(($("a", item)
-                    .eq(1)
-                    .text()
-                    .trim()
-                    .match(/(\d)+[.]?(\d)*/gm) ?? "")[0]);
-            if (typeof url === "undefined" || typeof image === "undefined")
-                continue;
-            latestManga.push(App.createPartialSourceManga({
-                image: image,
-                title: title,
-                mangaId: url,
-                subtitle: subtitle
-            }));
+            let subtitle =
+                "Chapitre " +
+                decodeHTMLEntity(
+                    ($("a", item)
+                        .eq(1)
+                        .text()
+                        .trim()
+                        .match(/(\d)+[.]?(\d)*/gm) ?? "")[0]
+                );
+            if (typeof url === "undefined" || typeof image === "undefined") continue;
+            latestManga.push(
+                App.createPartialSourceManga({
+                    image: image,
+                    title: title,
+                    mangaId: url,
+                    subtitle: subtitle,
+                })
+            );
         }
         section2.items = latestManga;
         sectionCallback(section2);
@@ -209,14 +230,15 @@ export class Parser {
                 .trim()
                 .replace(/\B(?=(\d{3})+(?!\d))/g, " ")
                 .replace("# ", "");
-            if (typeof url === "undefined" || typeof image === "undefined")
-                continue;
-            topManga.push(App.createPartialSourceManga({
-                image: image,
-                title: title,
-                mangaId: url,
-                subtitle: subtitle
-            }));
+            if (typeof url === "undefined" || typeof image === "undefined") continue;
+            topManga.push(
+                App.createPartialSourceManga({
+                    image: image,
+                    title: title,
+                    mangaId: url,
+                    subtitle: subtitle,
+                })
+            );
         }
         section3.items = topManga;
         sectionCallback(section3);
