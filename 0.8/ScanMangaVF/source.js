@@ -460,7 +460,7 @@ __exportStar(require("./compat/DyamicUI"), exports);
 },{"./base/index":7,"./compat/DyamicUI":16,"./generated/_exports":60}],62:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FlameScans = exports.ScanMangaVFInfo = void 0;
+exports.ScanMangaVF = exports.ScanMangaVFInfo = void 0;
 const types_1 = require("@paperback/types");
 const parser_1 = require("./parser");
 const SOURCE_DOMAIN = "https://scanmanga-vf.ws";
@@ -476,18 +476,17 @@ exports.ScanMangaVFInfo = {
     sourceTags: [
         {
             text: "French",
-            type: types_1.BadgeColor.GREY
+            type: types_1.BadgeColor.GREY,
         },
         {
             text: "Cloudflare",
-            type: types_1.BadgeColor.RED
+            type: types_1.BadgeColor.RED,
         },
-    ]
+    ],
 };
 const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.124 Safari/537.36 Edg/102.0.1245.44";
-class FlameScans extends types_1.Source {
+class ScanMangaVF {
     constructor() {
-        super(...arguments);
         this.baseUrl = SOURCE_DOMAIN;
         this.requestManager = App.createRequestManager({
             requestsPerSecond: 3,
@@ -498,18 +497,21 @@ class FlameScans extends types_1.Source {
                         ...(request.headers ?? {}),
                         ...{
                             "user-agent": userAgent,
-                            referer: `${this.baseUrl}/`
-                        }
+                            referer: `${this.baseUrl}/`,
+                        },
                     };
                     return request;
                 },
                 interceptResponse: async (response) => {
                     return response;
-                }
-            }
+                },
+            },
         });
         this.RETRY = 5;
         this.parser = new parser_1.Parser();
+    }
+    getViewMoreItems(homepageSectionId, metadata) {
+        throw new Error("Method not implemented.");
     }
     getMangaShareUrl(mangaId) {
         return `${this.baseUrl}/manga/${mangaId}`;
@@ -517,7 +519,7 @@ class FlameScans extends types_1.Source {
     async getMangaDetails(mangaId) {
         const request = App.createRequest({
             url: `${this.baseUrl}/manga/${mangaId}`,
-            method: "GET"
+            method: "GET",
         });
         const response = await this.requestManager.schedule(request, this.RETRY);
         this.CloudFlareError(response.status);
@@ -527,7 +529,7 @@ class FlameScans extends types_1.Source {
     async getChapters(mangaId) {
         const request = App.createRequest({
             url: `${this.baseUrl}/manga/${mangaId}`,
-            method: "GET"
+            method: "GET",
         });
         const response = await this.requestManager.schedule(request, this.RETRY);
         this.CloudFlareError(response.status);
@@ -537,7 +539,7 @@ class FlameScans extends types_1.Source {
     async getChapterDetails(mangaId, chapterId) {
         const request = App.createRequest({
             url: `${chapterId}`,
-            method: "GET"
+            method: "GET",
         });
         const response = await this.requestManager.schedule(request, this.RETRY);
         this.CloudFlareError(response.status);
@@ -553,7 +555,7 @@ class FlameScans extends types_1.Source {
         const request = App.createRequest({
             url: `${this.baseUrl}`,
             method: "GET",
-            param
+            param,
         });
         const data = await this.requestManager.schedule(request, this.RETRY);
         this.CloudFlareError(data.status);
@@ -564,13 +566,13 @@ class FlameScans extends types_1.Source {
             page = -1;
         return App.createPagedResults({
             results: manga,
-            metadata: { page: page }
+            metadata: { page: page },
         });
     }
     async getHomePageSections(sectionCallback) {
         const request = App.createRequest({
             url: `${this.baseUrl}`,
-            method: "GET"
+            method: "GET",
         });
         const response = await this.requestManager.schedule(request, this.RETRY);
         this.CloudFlareError(response.status);
@@ -583,8 +585,8 @@ class FlameScans extends types_1.Source {
             method: "GET",
             headers: {
                 "user-agent": userAgent,
-                referer: `${this.baseUrl}/`
-            }
+                referer: `${this.baseUrl}/`,
+            },
         });
     }
     CloudFlareError(status) {
@@ -593,7 +595,7 @@ class FlameScans extends types_1.Source {
         }
     }
 }
-exports.FlameScans = FlameScans;
+exports.ScanMangaVF = ScanMangaVF;
 
 },{"./parser":63,"@paperback/types":61}],63:[function(require,module,exports){
 "use strict";
