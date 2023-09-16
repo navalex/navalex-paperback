@@ -1,8 +1,8 @@
 {
-    "name": "nmn-extension",
-    "repositoryName": "NMN's Extensions",
+    "name": "navalex-paperback",
+    "repositoryName": "Navalex Paperback extensions",
     "version": "1.0.0",
-    "description": "Holds repo I make",
+    "description": "Navalex custom extension for Paperback IOS app",
     "main": "index.js",
     "scripts": {
         "bundle": "paperback bundle",
